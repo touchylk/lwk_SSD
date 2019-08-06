@@ -5,7 +5,14 @@ import xml.etree.ElementTree as ET
 from PIL import Image
 
 from ssd.structures.container import Container
-
+class_names = ('__background__',
+                   'aeroplane', 'bicycle', 'bird', 'boat',
+                   'bottle', 'bus', 'car', 'cat', 'chair',
+                   'cow', 'diningtable', 'dog', 'horse',
+                   'motorbike', 'person', 'pottedplant',
+                   'sheep', 'sofa', 'train', 'tvmonitor')
+class_dict = {class_name: i for i, class_name in enumerate(class_names)}
+print(class_dict)
 
 class VOCDataset(torch.utils.data.Dataset):
     class_names = ('__background__',
@@ -48,9 +55,9 @@ class VOCDataset(torch.utils.data.Dataset):
         )
         return image, targets, index
 
-    def get_annotation(self, index):
-        image_id = self.ids[index]
-        return image_id, self._get_annotation(image_id)
+    # def get_annotation(self, index):
+    #     image_id = self.ids[index]
+    #     return image_id, self._get_annotation(image_id)
 
     def __len__(self):
         return len(self.ids)

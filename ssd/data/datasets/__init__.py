@@ -1,3 +1,4 @@
+# coding: utf-8
 from torch.utils.data import ConcatDataset
 
 from ssd.config.path_catlog import DatasetCatalog
@@ -14,7 +15,7 @@ def build_dataset(dataset_list, transform=None, target_transform=None, is_train=
     assert len(dataset_list) > 0
     datasets = []
     for dataset_name in dataset_list:
-        data = DatasetCatalog.get(dataset_name)
+        data = DatasetCatalog.get(dataset_name) # dataset的路径在这里
         args = data['args']
         factory = _DATASETS[data['factory']]
         args['transform'] = transform
@@ -23,6 +24,11 @@ def build_dataset(dataset_list, transform=None, target_transform=None, is_train=
             args['keep_difficult'] = not is_train
         elif factory == COCODataset:
             args['remove_empty'] = is_train
+        print('args:',args)
+        for key in args:
+            print(key,args[key])
+        print(factory)
+        exit(138)
         dataset = factory(**args)
         datasets.append(dataset)
     # for testing, return a list of datasets

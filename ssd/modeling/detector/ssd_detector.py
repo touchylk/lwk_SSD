@@ -3,7 +3,6 @@ from torch import nn
 from ssd.modeling.backbone import build_backbone
 from ssd.modeling.box_head import build_box_head
 
-
 class SSDDetector(nn.Module):
     def __init__(self, cfg):
         super().__init__()

@@ -1,3 +1,4 @@
+# coding: utf-8
 import argparse
 import logging
 import os
@@ -20,40 +21,42 @@ from ssd.utils.misc import str2bool
 
 def train(cfg, args):
     logger = logging.getLogger('SSD.trainer')
-    model = build_detection_model(cfg)
-    device = torch.device(cfg.MODEL.DEVICE)
+    model = build_detection_model(cfg) # 建立模型
+    device = torch.device(cfg.MODEL.DEVICE) # 看cfg怎么组织的，把文件和args剥离开
     model.to(device)
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
 
     lr = cfg.SOLVER.LR * args.num_gpus  # scale by num gpus
-    optimizer = make_optimizer(cfg, model, lr)
+    optimizer = make_optimizer(cfg, model, lr) # 建立优化器
 
     milestones = [step // args.num_gpus for step in cfg.SOLVER.LR_STEPS]
     scheduler = make_lr_scheduler(cfg, optimizer, milestones)
 
     arguments = {"iteration": 0}
     save_to_disk = dist_util.get_rank() == 0
-    checkpointer = CheckPointer(model, optimizer, scheduler, cfg.OUTPUT_DIR, save_to_disk, logger)
-    extra_checkpoint_data = checkpointer.load()
+    checkpointer = CheckPointer(model, optimizer, scheduler, save_dir=cfg.OUTPUT_DIR, save_to_disk=save_to_disk, logger=logger)
+    # 建立模型存储载入类,给save_dir赋值表示
+    extra_checkpoint_data = checkpointer.load() # 载入模型
     arguments.update(extra_checkpoint_data)
 
     max_iter = cfg.SOLVER.MAX_ITER // args.num_gpus
-    train_loader = make_data_loader(cfg, is_train=True, distributed=args.distributed, max_iter=max_iter, start_iter=arguments['iteration'])
+    train_loader = make_data_loader(cfg, is_train=True, distributed=args.distributed, max_iter=max_iter, start_iter=arguments['iteration']) # 建立数据库
 
-    model = do_train(cfg, model, train_loader, optimizer, scheduler, checkpointer, device, arguments, args)
+    model = do_train(cfg, model, train_loader, optimizer, scheduler, checkpointer, device, arguments, args) # 训练
     return model
 
 
 def main():
     parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training With PyTorch')
-    parser.add_argument(
-        "--config-file",
-        default="",
-        metavar="FILE",
-        help="path to config file",
-        type=str,
-    )
+    config_file = './configs/vgg_ssd300_voc0712.yaml'
+    # parser.add_argument(
+    #     "--config-file",
+    #     default="",
+    #     metavar="FILE",
+    #     help="path to config file",
+    #     type=str,
+    # )
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument('--log_step', default=10, type=int, help='Print logs every log_step')
     parser.add_argument('--save_step', default=2500, type=int, help='Save checkpoint every save_step')
@@ -85,9 +88,13 @@ def main():
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_file(config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
+    # print(cfg)
+    # exit()
+    # print(cfg.INPUT)
+    # exit()
 
     if cfg.OUTPUT_DIR:
         mkdir(cfg.OUTPUT_DIR)
@@ -96,10 +103,10 @@ def main():
     logger.info("Using {} GPUs".format(num_gpus))
     logger.info(args)
 
-    logger.info("Loaded configuration file {}".format(args.config_file))
-    with open(args.config_file, "r") as cf:
-        config_str = "\n" + cf.read()
-        logger.info(config_str)
+    # logger.info("Loaded configuration file {}".format(config_file))
+    # with open(args.config_file, "r") as cf:
+    #     config_str = "\n" + cf.read()
+    #     logger.info(config_str)
     logger.info("Running with config:\n{}".format(cfg))
 
     model = train(cfg, args)

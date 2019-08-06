@@ -9,12 +9,22 @@ from ssd.utils.model_zoo import cache_url
 
 class CheckPointer:
     _last_checkpoint_name = 'last_checkpoint.txt'
+    '''
+    para save_dir 表示权值地址
+    方法：save(self, name, **kwargs):以dict的形式储存model，optimi，schel等。并修改lastcheckpoint
+    load(self, f=None, use_latest=True): 从制定f或者lastcheckpoint载入变量
+    get_checkpoint_file(self):从txt获取lastcheckpoint
+    def has_checkpoint(self):检测是否有checkpoint
+    tag_last_checkpoint(self, last_filename):标记checkpoint
+    _load_file(self, f):下载checkpoint，可以不用
+    
+    '''
 
     def __init__(self,
                  model,
                  optimizer=None,
                  scheduler=None,
-                 save_dir="",
+                 save_dir="/media/e813/D/weights/SSD_PYTHORCH/",
                  save_to_disk=None,
                  logger=None):
         self.model = model
@@ -27,6 +37,12 @@ class CheckPointer:
         self.logger = logger
 
     def save(self, name, **kwargs):
+        '''
+
+        :param name: 保存的文件名字
+        :param kwargs:
+        :return:
+        '''
         if not self.save_dir:
             return
 
@@ -54,7 +70,7 @@ class CheckPointer:
         if self.has_checkpoint() and use_latest:
             # override argument with existing checkpoint
             f = self.get_checkpoint_file()
-        if not f:
+        if not f: # 可以改为else
             # no checkpoint could be found
             self.logger.info("No checkpoint found.")
             return {}
@@ -64,7 +80,9 @@ class CheckPointer:
         model = self.model
         if isinstance(model, DistributedDataParallel):
             model = self.model.module
-
+        if 'model' not in checkpoint:
+            model.load_state_dict(checkpoint)
+            return checkpoint
         model.load_state_dict(checkpoint.pop("model"))
         if "optimizer" in checkpoint and self.optimizer:
             self.logger.info("Loading optimizer from {}".format(f))
@@ -76,7 +94,7 @@ class CheckPointer:
         # return any further checkpoint data
         return checkpoint
 
-    def get_checkpoint_file(self):
+    def get_checkpoint_file(self): # 这里要修改，才能改变读初值的地址
         save_file = os.path.join(self.save_dir, self._last_checkpoint_name)
         try:
             with open(save_file, "r") as f:
@@ -90,6 +108,7 @@ class CheckPointer:
 
     def has_checkpoint(self):
         save_file = os.path.join(self.save_dir, self._last_checkpoint_name)
+        print(save_file)
         return os.path.exists(save_file)
 
     def tag_last_checkpoint(self, last_filename):

@@ -1,5 +1,6 @@
 from .ssd_detector import SSDDetector
 
+
 _DETECTION_META_ARCHITECTURES = {
     "SSDDetector": SSDDetector
 }

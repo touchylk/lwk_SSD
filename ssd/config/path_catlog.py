@@ -2,7 +2,7 @@ import os
 
 
 class DatasetCatalog:
-    DATA_DIR = 'datasets'
+    DATA_DIR = '/media/e813/E/dataset/VOCdevkit/'
     DATASETS = {
         'voc_2007_train': {
             "data_dir": "VOC2007",
