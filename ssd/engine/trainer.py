@@ -73,7 +73,7 @@ def do_train(cfg, model,
     start_training_time = time.time()
     end = time.time()
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
-        print("imgs shape:  ",images.shape,iteration)
+        # print("imgs shape:  ",images.shape,iteration)
         # continue
         iteration = iteration + 1
         arguments["iteration"] = iteration

@@ -1,5 +1,5 @@
 try:
-    import torch_extension
+    import torch_extension1
 
     _nms = torch_extension.nms
 except ImportError:
