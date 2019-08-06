@@ -73,6 +73,8 @@ def do_train(cfg, model,
     start_training_time = time.time()
     end = time.time()
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
+        print("imgs shape:  ",images.shape,iteration)
+        # continue
         iteration = iteration + 1
         arguments["iteration"] = iteration
         scheduler.step()
@@ -94,6 +96,8 @@ def do_train(cfg, model,
         batch_time = time.time() - end
         end = time.time()
         meters.update(time=batch_time)
+
+        # log step
         if iteration % args.log_step == 0:
             eta_seconds = meters.time.global_avg * (max_iter - iteration)
             eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
@@ -119,9 +123,11 @@ def do_train(cfg, model,
                     summary_writer.add_scalar('losses/{}'.format(loss_name), loss_item, global_step=global_step)
                 summary_writer.add_scalar('lr', optimizer.param_groups[0]['lr'], global_step=global_step)
 
+        # save step
         if iteration % args.save_step == 0:
             checkpointer.save("model_{:06d}".format(iteration), **arguments)
 
+        # eval step
         if args.eval_step > 0 and iteration % args.eval_step == 0 and not iteration == max_iter:
             eval_results = do_evaluation(cfg, model, distributed=args.distributed, iteration=iteration)
             if dist_util.get_rank() == 0 and summary_writer:

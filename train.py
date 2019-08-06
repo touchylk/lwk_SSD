@@ -5,7 +5,7 @@ import os
 
 import torch
 import torch.distributed as dist
-
+import torch.nn as nn
 from ssd.engine.inference import do_evaluation
 from ssd.config import cfg
 from ssd.data.build import make_data_loader
@@ -26,6 +26,7 @@ def train(cfg, args):
     model.to(device)
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
+        # model = nn.DataParallel(model)
 
     lr = cfg.SOLVER.LR * args.num_gpus  # scale by num gpus
     optimizer = make_optimizer(cfg, model, lr) # 建立优化器
@@ -37,19 +38,30 @@ def train(cfg, args):
     save_to_disk = dist_util.get_rank() == 0
     checkpointer = CheckPointer(model, optimizer, scheduler, save_dir=cfg.OUTPUT_DIR, save_to_disk=save_to_disk, logger=logger)
     # 建立模型存储载入类,给save_dir赋值表示
-    extra_checkpoint_data = checkpointer.load() # 载入模型
+    extra_checkpoint_data = checkpointer.load(f='', use_latest=False) # 载入模型
     arguments.update(extra_checkpoint_data)
 
     max_iter = cfg.SOLVER.MAX_ITER // args.num_gpus
     train_loader = make_data_loader(cfg, is_train=True, distributed=args.distributed, max_iter=max_iter, start_iter=arguments['iteration']) # 建立数据库
 
+    print("dataloader: ",train_loader.batch_size)
+    # exit(1232)
     model = do_train(cfg, model, train_loader, optimizer, scheduler, checkpointer, device, arguments, args) # 训练
     return model
+
+def write_cfg_args(cfg,args):
+    config_args_file = os.path.join(cfg.OUTPUT_DIR, 'config_args.txt')
+    with open(config_args_file, 'w') as f:
+        f.write('config:\n\n')
+        f.write(str(cfg))
+        f.write('\n\nargs:\n\n')
+        f.write(str(args))
+
 
 
 def main():
     parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training With PyTorch')
-    config_file = './configs/vgg_ssd300_voc0712.yaml'
+    config_file = './configs/mobilenet_v2_ssd320_voc0712.yaml'
     # parser.add_argument(
     #     "--config-file",
     #     default="",
@@ -62,22 +74,15 @@ def main():
     parser.add_argument('--save_step', default=2500, type=int, help='Save checkpoint every save_step')
     parser.add_argument('--eval_step', default=2500, type=int, help='Evaluate dataset every eval_step, disabled when eval_step < 0')
     parser.add_argument('--use_tensorboard', default=True, type=str2bool)
-    parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
-    )
-    parser.add_argument(
-        "opts",
-        help="Modify config options using the command-line",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
+    parser.add_argument('--num_gpus',default=2,type=int)
+    parser.add_argument("--skip-test", dest="skip_test", help="Do not test the final model", action="store_true",)
+    parser.add_argument("opts", help="Modify config options using the command-line", default=None, nargs=argparse.REMAINDER,)
     args = parser.parse_args()
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     args.distributed = num_gpus > 1
     args.num_gpus = num_gpus
+    # num_gpus = args.num_gpus
+    # args.distributed = num_gpus > 1
 
     if torch.cuda.is_available():
         # This flag allows you to enable the inbuilt cudnn auto-tuner to
@@ -95,6 +100,7 @@ def main():
     # exit()
     # print(cfg.INPUT)
     # exit()
+    print(cfg.OUTPUT_DIR)
 
     if cfg.OUTPUT_DIR:
         mkdir(cfg.OUTPUT_DIR)
@@ -107,8 +113,9 @@ def main():
     # with open(args.config_file, "r") as cf:
     #     config_str = "\n" + cf.read()
     #     logger.info(config_str)
-    logger.info("Running with config:\n{}".format(cfg))
+    # logger.info("Running with config:\n{}".format(cfg))
 
+    write_cfg_args(cfg,args)
     model = train(cfg, args)
 
     if not args.skip_test:

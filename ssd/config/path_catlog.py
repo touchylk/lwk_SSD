@@ -1,8 +1,9 @@
+# coding: utf-8
 import os
 
 
 class DatasetCatalog:
-    DATA_DIR = '/media/e813/E/dataset/VOCdevkit/'
+    DATA_DIR = '/proj/dataset/train_data/VOCdevkit/'  # Voc PATH
     DATASETS = {
         'voc_2007_train': {
             "data_dir": "VOC2007",

@@ -67,6 +67,12 @@ class CheckPointer:
         self.tag_last_checkpoint(save_file)
 
     def load(self, f=None, use_latest=True):
+        """
+
+        :param f: 载入文件的地址
+        :param use_latest:
+        :return:
+        """
         if self.has_checkpoint() and use_latest:
             # override argument with existing checkpoint
             f = self.get_checkpoint_file()

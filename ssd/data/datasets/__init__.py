@@ -16,6 +16,7 @@ def build_dataset(dataset_list, transform=None, target_transform=None, is_train=
     datasets = []
     for dataset_name in dataset_list:
         data = DatasetCatalog.get(dataset_name) # dataset的路径在这里
+        print(data['args'])
         args = data['args']
         factory = _DATASETS[data['factory']]
         args['transform'] = transform
@@ -24,11 +25,11 @@ def build_dataset(dataset_list, transform=None, target_transform=None, is_train=
             args['keep_difficult'] = not is_train
         elif factory == COCODataset:
             args['remove_empty'] = is_train
-        print('args:',args)
-        for key in args:
-            print(key,args[key])
-        print(factory)
-        exit(138)
+        # print('args:',args)
+        # for key in args:
+        #     print(key,args[key])
+        # print(factory)
+
         dataset = factory(**args)
         datasets.append(dataset)
     # for testing, return a list of datasets
