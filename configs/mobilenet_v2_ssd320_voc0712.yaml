@@ -20,7 +20,8 @@ SOLVER:
   MAX_ITER: 120000
   LR_STEPS: [80000, 100000]
   GAMMA: 0.1
-  BATCH_SIZE: 64
+  BATCH_SIZE: 32
   LR: 1e-3
 
-OUTPUT_DIR: '/home/xidian/xidian-ssd/weights/SSD'
+
+OUTPUT_DIR: '/media/e813/D/weights/SSD_VOC'

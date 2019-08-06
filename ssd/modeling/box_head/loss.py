@@ -1,12 +1,13 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from . import focal_loss
 
 from ssd.utils import box_utils
 
 
 class MultiBoxLoss(nn.Module):
-    def __init__(self, neg_pos_ratio):
+    def __init__(self, neg_pos_ratio,num_classes,alpha=None,gamma=2):
         """Implement SSD MultiBox Loss.
 
         Basically, MultiBox loss combines classification loss
@@ -14,6 +15,7 @@ class MultiBoxLoss(nn.Module):
         """
         super(MultiBoxLoss, self).__init__()
         self.neg_pos_ratio = neg_pos_ratio
+        self.focal_loss = focal_loss.FocalLoss(num_classes,alpha=alpha,gamma=gamma,size_average=False)
 
     def forward(self, confidence, predicted_locations, labels, gt_locations):
         """Compute classification loss and smooth l1 loss.
@@ -21,9 +23,10 @@ class MultiBoxLoss(nn.Module):
         Args:
             confidence (batch_size, num_priors, num_classes): class predictions.
             predicted_locations (batch_size, num_priors, 4): predicted locations.
-            labels (batch_size, num_priors): real labels of all the priors.
-            gt_locations (batch_size, num_priors, 4): real boxes corresponding all the priors.
+            labels (batch_size, num_priors): real labels of all the priors.       class label
+            gt_locations (batch_size, num_priors, 4): real boxes corresponding all the priors.   boxes label
         """
+        print('init conf size:',confidence.shape)
         num_classes = confidence.size(2)
         with torch.no_grad():
             # derived from cross_entropy=sum(log(p))
@@ -31,8 +34,8 @@ class MultiBoxLoss(nn.Module):
             mask = box_utils.hard_negative_mining(loss, labels, self.neg_pos_ratio)
 
         confidence = confidence[mask, :]
-        classification_loss = F.cross_entropy(confidence.view(-1, num_classes), labels[mask], reduction='sum')
-
+        # classification_loss = F.cross_entropy(confidence.view(-1, num_classes), labels[mask], reduction='sum')
+        classification_loss = self.focal_loss(confidence.view(-1, num_classes), labels[mask])
         pos_mask = labels > 0
         predicted_locations = predicted_locations[pos_mask, :].view(-1, 4)
         gt_locations = gt_locations[pos_mask, :].view(-1, 4)

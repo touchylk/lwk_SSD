@@ -15,20 +15,22 @@ class SSDBoxHead(nn.Module):
         super().__init__()
         self.cfg = cfg
         self.predictor = make_box_predictor(cfg)
-        self.loss_evaluator = MultiBoxLoss(neg_pos_ratio=cfg.MODEL.NEG_POS_RATIO)
+        self.loss_evaluator = MultiBoxLoss(neg_pos_ratio=cfg.MODEL.NEG_POS_RATIO,num_classes=cfg.MODEL.NUM_CLASSES,
+                                           alpha=None,gamma=2
+                                           )
         self.post_processor = PostProcessor(cfg)
         self.priors = None
 
     def forward(self, features, targets=None):
         cls_logits, bbox_pred = self.predictor(features)
         if self.training:
-            return self._forward_train(cls_logits, bbox_pred, targets)
+            return self._forward_train(cls_logits, bbox_pred, targets) # return cls_logits, bbox_pred and loss
         else:
-            return self._forward_test(cls_logits, bbox_pred)
+            return self._forward_test(cls_logits, bbox_pred) # post processing
 
     def _forward_train(self, cls_logits, bbox_pred, targets):
         gt_boxes, gt_labels = targets['boxes'], targets['labels']
-        reg_loss, cls_loss = self.loss_evaluator(cls_logits, bbox_pred, gt_labels, gt_boxes)
+        reg_loss, cls_loss = self.loss_evaluator(cls_logits, bbox_pred, gt_labels, gt_boxes) # calu loss
         loss_dict = dict(
             reg_loss=reg_loss,
             cls_loss=cls_loss,

@@ -1,10 +1,11 @@
 try:
-    import torch_extension1
+    import torch_extension
 
     _nms = torch_extension.nms
 except ImportError:
     from .python_nms import python_nms
 
+    print('\nusing python nms!!!\n')
     _nms = python_nms
 
 
