@@ -1,0 +1,1 @@
+/home/xidian/xidian-ssd/lwk_SSD/outputs/vgg_ssd300_voc0712/model_000000.pth

@@ -24,4 +24,4 @@ SOLVER:
   LR: 1e-3
 
 
-OUTPUT_DIR: '/media/e813/D/weights/SSD_VOC'
+OUTPUT_DIR: '/home/xidian/xidian-ssd/SSD/outputs'
